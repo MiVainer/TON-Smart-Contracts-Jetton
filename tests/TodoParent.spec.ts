@@ -1,7 +1,9 @@
 import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { toNano } from '@ton/core';
-import { TodoParent } from '../wrappers/TodoParent';
+import { CompleteTodo, TodoParent } from '../wrappers/TodoParent';
 import '@ton/test-utils';
+import { TodoChild } from '../build/TodoChild/tact_TodoChild';
+import { NewTodo } from '../wrappers/TodoChild';
 
 describe('TodoParent', () => {
     let blockchain: Blockchain;
@@ -38,4 +40,34 @@ describe('TodoParent', () => {
         // the check is done inside beforeEach
         // blockchain and todoParent are ready to use
     });
+    it('should create ToDo', async () => {
+        const message: NewTodo = {
+            $$type: 'NewTodo',
+            task: "todo1"
+        }
+
+        await todoParent.send(deployer.getSender(), {
+            value: toNano("0.5")
+        }, message)
+
+        const TodoChildAddr = await todoParent.getTodoAddress(1n)
+
+        const todoChild = blockchain.openContract(TodoChild.fromAddress(TodoChildAddr))
+        
+        const details = await todoChild.getDetails()
+
+        console.log("details - ", details)
+
+        const messageComplete: CompleteTodo = {
+            $$type: 'CompleteTodo',
+            seqno: 1n
+        }
+        await todoParent.send(deployer.getSender(), {
+            value: toNano("0.5")
+        }, messageComplete)
+        
+        console.log("details - ", await todoChild.getDetails())
+
+    })
+
 });

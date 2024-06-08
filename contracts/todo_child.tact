@@ -1,8 +1,42 @@
 import "@stdlib/deploy";
+import "./messages";
+
+struct TodoDetails{
+    task: String;
+    completed: Bool;
+}
 
 contract TodoChild with Deployable {
-    // Empty init() function is present by default in all Tact contracts
-    // since v1.3.0, so the following may be omitted:
-    //
-    // init() {}
+
+    parent: Address;
+    seqno: Int as uint256;
+    task: String = "";
+    completed: Bool = false;
+
+    init(parent: Address, seqno: Int) {
+        self.parent = parent;
+        self.seqno = seqno;
+
+    }
+
+    receive(msg: InternalSetTask){
+        require(sender() == self.parent, "Parent only");
+        self.task = msg.task;
+    }
+
+    receive(msg: InternalComplete){
+        require(sender()==self.parent, "Parent only");
+        self.completed = true;
+        send(SendParameters{
+            to: msg.excess,
+            value: 0,
+            mode: SendRemainingValue + SendIgnoreErrors
+        });
+    }
+
+    get fun details(): TodoDetails {
+        return TodoDetails{task: self.task, completed: self.completed};
+    }
+    
+
 }
